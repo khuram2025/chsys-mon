@@ -186,7 +186,37 @@
                     <div class="historical-metrics">
                         <h6>Historical Data</h6>
                         {% if chart_data.timestamps %}
-                            <!-- CPU Chart -->
+                            <!-- Add Historical Data Table -->
+                            <div class="table-responsive mb-4">
+                                <table class="table table-striped table-hover" id="metricsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>CPU Usage</th>
+                                            <th>Memory Usage</th>
+                                            <th>Disk Usage</th>
+                                            <th>Memory Used</th>
+                                            <th>Network Sent</th>
+                                            <th>Network Received</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for metric in metrics_history %}
+                                        <tr>
+                                            <td>{{ metric.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                            <td>{{ metric.cpu_usage|floatformat:1 }}%</td>
+                                            <td>{{ metric.memory_percent|floatformat:1 }}%</td>
+                                            <td>{{ metric.disk_percent|floatformat:1 }}%</td>
+                                            <td>{{ metric.memory_used|filesizeformat }}</td>
+                                            <td>{{ metric.network_bytes_sent|filesizeformat }}</td>
+                                            <td>{{ metric.network_bytes_recv|filesizeformat }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Existing Charts -->
                             <div class="chart-container mb-4">
                                 <canvas id="cpuChart"></canvas>
                             </div>
@@ -371,14 +401,21 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 $(document).ready(function() {
-    $('.table').DataTable({
-        order: [[0, 'desc']], // Sort by time descending
+    $('#metricsTable').DataTable({
+        order: [[0, 'desc']], // Sort by timestamp descending
         pageLength: 25, // Show 25 entries per page
         dom: 'Bfrtip', // Add export buttons
         buttons: [
             'copy', 'csv', 'excel'
         ],
-        responsive: true
+        responsive: true,
+        language: {
+            search: "Search metrics:",
+            lengthMenu: "Show _MENU_ entries per page",
+            info: "Showing _START_ to _END_ of _TOTAL_ metrics",
+            infoEmpty: "Showing 0 to 0 of 0 metrics",
+            infoFiltered: "(filtered from _MAX_ total metrics)"
+        }
     });
 });
 </script>

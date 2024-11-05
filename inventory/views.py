@@ -20,12 +20,45 @@ class DeviceListView(ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['status_counts'] = {
-            'total': Device.objects.count(),
-            'pending': Device.objects.filter(status='pending').count(),
-            'active': Device.objects.filter(status='active').count(),
-            'rejected': Device.objects.filter(status='rejected').count(),
+        
+        # Get time range from request
+        time_range = self.request.GET.get('range', '1h')
+        end_time = timezone.now()
+        
+        # Calculate start time based on range
+        time_ranges = {
+            '1h': timedelta(hours=1),
+            '3h': timedelta(hours=3),
+            '12h': timedelta(hours=12),
+            '24h': timedelta(hours=24),
+            '7d': timedelta(days=7),
         }
+        
+        start_time = end_time - time_ranges.get(time_range, time_ranges['1h'])
+        
+        # Add metrics summary to each device
+        devices = context['devices']
+        for device in devices:
+            metrics = SystemMetricsHistory.objects.filter(
+                device=device,
+                timestamp__range=(start_time, end_time)
+            ).aggregate(
+                cpu_avg=models.Avg('cpu_usage'),
+                memory_avg=models.Avg('memory_percent'),
+                disk_avg=models.Avg('disk_percent')
+            )
+            device.metrics_summary = metrics
+        
+        context.update({
+            'status_counts': {
+                'total': Device.objects.count(),
+                'pending': Device.objects.filter(status='pending').count(),
+                'active': Device.objects.filter(status='active').count(),
+                'rejected': Device.objects.filter(status='rejected').count(),
+            },
+            'time_range': time_range,
+        })
+        
         return context
 
     def post(self, request, *args, **kwargs):
@@ -331,7 +364,10 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
         metrics = SystemMetricsHistory.objects.filter(
             device=device,
             timestamp__range=(start_time, end_time)
-        ).order_by('timestamp')
+        ).order_by('-timestamp')  # Order by most recent first
+
+        # Add metrics history to context
+        context['metrics_history'] = metrics
 
         # Calculate statistics
         if metrics.exists():

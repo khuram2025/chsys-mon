@@ -48,6 +48,25 @@
     <!-- Device Table -->
     <div class="card">
         <div class="card-body">
+            <!-- Add filter form -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <form class="form-inline" method="GET">
+                        <div class="input-group">
+                            <select class="form-select" name="time_range">
+                                <option value="1h" {% if time_range == '1h' %}selected{% endif %}>Last Hour</option>
+                                <option value="3h" {% if time_range == '3h' %}selected{% endif %}>Last 3 Hours</option>
+                                <option value="12h" {% if time_range == '12h' %}selected{% endif %}>Last 12 Hours</option>
+                                <option value="24h" {% if time_range == '24h' %}selected{% endif %}>Last 24 Hours</option>
+                                <option value="7d" {% if time_range == '7d' %}selected{% endif %}>Last 7 Days</option>
+                            </select>
+                            <button class="btn btn-primary" type="submit">Apply Filter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Update table to show historical data -->
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
@@ -58,6 +77,7 @@
                             <th>Status</th>
                             <th>Last Seen</th>
                             <th>System Info</th>
+                            <th>Historical Metrics</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -87,6 +107,17 @@
                                 </small>
                             </td>
                             <td>
+                                {% if device.metrics_summary %}
+                                <small>
+                                    CPU Avg: {{ device.metrics_summary.cpu_avg|floatformat:1 }}%<br>
+                                    Memory Avg: {{ device.metrics_summary.memory_avg|floatformat:1 }}%<br>
+                                    Disk Usage: {{ device.metrics_summary.disk_avg|floatformat:1 }}%
+                                </small>
+                                {% else %}
+                                <small>No historical data</small>
+                                {% endif %}
+                            </td>
+                            <td>
                                 {% if device.status == 'pending' %}
                                 <button class="btn btn-sm btn-success device-action-btn" 
                                         data-device-id="{{ device.id }}" 
@@ -103,7 +134,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">No devices found</td>
+                            <td colspan="8" class="text-center">No devices found</td>
                         </tr>
                         {% endfor %}
                     </tbody>
