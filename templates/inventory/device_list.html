@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Device Inventory</h2>
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Devices</h5>
+                    <h2>{{ status_counts.total }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending</h5>
+                    <h2>{{ status_counts.pending }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Active</h5>
+                    <h2>{{ status_counts.active }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Rejected</h5>
+                    <h2>{{ status_counts.rejected }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Hostname</th>
+                            <th>IP Address</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Last Seen</th>
+                            <th>System Info</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for device in devices %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'inventory:device_detail' pk=device.id %}">
+                                    {{ device.hostname|default:device.name }}
+                                </a>
+                            </td>
+                            <td>{{ device.ip_address }}</td>
+                            <td>{{ device.get_device_type_display }}</td>
+                            <td>
+                                <span class="badge {% if device.status == 'active' %}bg-success{% elif device.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ device.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ device.last_seen|timesince }} ago</td>
+                            <td>
+                                <small>
+                                    OS: {{ device.os_version }}<br>
+                                    {% if device.resources %}
+                                    CPU Cores: {{ device.resources.cpu_cores }}<br>
+                                    Memory: {{ device.resources.total_memory|filesizeformat }}
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                {% if device.status == 'pending' %}
+                                <button class="btn btn-sm btn-success device-action-btn" 
+                                        data-device-id="{{ device.id }}" 
+                                        data-action="accept">
+                                    Accept
+                                </button>
+                                <button class="btn btn-sm btn-danger device-action-btn" 
+                                        data-device-id="{{ device.id }}" 
+                                        data-action="reject">
+                                    Reject
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No devices found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add this to your template to handle form submissions via AJAX -->
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.device-action-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const deviceId = this.dataset.deviceId;
+            const action = this.dataset.action;
+            
+            try {
+                const response = await fetch(`/api/device/${deviceId}/action/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: `action=${action}`
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error processing request');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

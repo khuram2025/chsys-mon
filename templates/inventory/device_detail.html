@@ -1,0 +1,385 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Back Button -->
+    <div class="row mb-3">
+        <div class="col">
+            <a href="{% url 'inventory:device_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <!-- Device Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2>
+                {{ device.hostname|default:device.name }}
+                <span class="badge {% if device.status == 'active' %}bg-success{% elif device.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ device.get_status_display }}
+                </span>
+            </h2>
+            <p class="text-muted">Last seen: {{ device.last_seen|timesince }} ago</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- System Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">System Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>IP Address:</th>
+                                <td>{{ device.ip_address }}</td>
+                            </tr>
+                            <tr>
+                                <th>Device Type:</th>
+                                <td>{{ device.get_device_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Operating System:</th>
+                                <td>{{ device.os_version }}</td>
+                            </tr>
+                            <tr>
+                                <th>Platform:</th>
+                                <td>{{ device.platform }}</td>
+                            </tr>
+                            <tr>
+                                <th>Processor:</th>
+                                <td>{{ device.processor }}</td>
+                            </tr>
+                            <tr>
+                                <th>Location:</th>
+                                <td>{{ device.location|default:"Not specified" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resource Metrics -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Resource Metrics</h5>
+                    <div class="btn-group">
+                        <a href="?range=30m" class="btn btn-sm btn-outline-primary {% if time_range == '30m' %}active{% endif %}">30m</a>
+                        <a href="?range=1h" class="btn btn-sm btn-outline-primary {% if time_range == '1h' %}active{% endif %}">1h</a>
+                        <a href="?range=3h" class="btn btn-sm btn-outline-primary {% if time_range == '3h' %}active{% endif %}">3h</a>
+                        <a href="?range=12h" class="btn btn-sm btn-outline-primary {% if time_range == '12h' %}active{% endif %}">12h</a>
+                        <a href="?range=24h" class="btn btn-sm btn-outline-primary {% if time_range == '24h' %}active{% endif %}">24h</a>
+                        <a href="?range=7d" class="btn btn-sm btn-outline-primary {% if time_range == '7d' %}active{% endif %}">7d</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if stats %}
+                    <div class="statistics mb-4">
+                        <h6>Resource Statistics ({{ time_range }} period)</h6>
+                        <div class="row">
+                            <!-- CPU Stats -->
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">CPU Usage</h6>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <th>Maximum:</th>
+                                                <td>{{ stats.cpu.max|floatformat:1 }}%</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Minimum:</th>
+                                                <td>{{ stats.cpu.min|floatformat:1 }}%</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Average:</th>
+                                                <td>{{ stats.cpu.avg|floatformat:1 }}%</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Memory Stats -->
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Memory Usage</h6>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <th>Maximum:</th>
+                                                <td>{{ stats.memory.max|floatformat:1 }}%</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Minimum:</th>
+                                                <td>{{ stats.memory.min|floatformat:1 }}%</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Average:</th>
+                                                <td>{{ stats.memory.avg|floatformat:1 }}%</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Disk Stats -->
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Disk Usage</h6>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <th>Maximum:</th>
+                                                <td>{{ stats.disk.max|floatformat:1 }}%</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Minimum:</th>
+                                                <td>{{ stats.disk.min|floatformat:1 }}%</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Average:</th>
+                                                <td>{{ stats.disk.avg|floatformat:1 }}%</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if current_resources %}
+                    <div class="current-metrics mb-4">
+                        <h6>Current System Resources</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>CPU Cores:</th>
+                                <td>{{ current_resources.cpu_cores }}</td>
+                                <th>CPU Usage:</th>
+                                <td>{{ current_resources.cpu_usage|floatformat:1 }}%</td>
+                            </tr>
+                            <tr>
+                                <th>Memory Total:</th>
+                                <td>{{ current_resources.total_memory|filesizeformat }}</td>
+                                <th>Memory Usage:</th>
+                                <td>{{ current_resources.memory_usage|floatformat:1 }}%</td>
+                            </tr>
+                            <tr>
+                                <th>Disk Total:</th>
+                                <td>{{ current_resources.total_disk_space|filesizeformat }}</td>
+                                <th>Disk Usage:</th>
+                                <td>{{ current_resources.disk_usage|floatformat:1 }}%</td>
+                            </tr>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    <div class="historical-metrics">
+                        <h6>Historical Data</h6>
+                        {% if chart_data.timestamps %}
+                            <!-- CPU Chart -->
+                            <div class="chart-container mb-4">
+                                <canvas id="cpuChart"></canvas>
+                            </div>
+                            
+                            <!-- Memory Chart -->
+                            <div class="chart-container mb-4">
+                                <canvas id="memoryChart"></canvas>
+                            </div>
+                            
+                            <!-- Disk Chart -->
+                            <div class="chart-container mb-4">
+                                <canvas id="diskChart"></canvas>
+                            </div>
+                            
+                            <!-- Network Chart -->
+                            <div class="chart-container mb-4">
+                                <canvas id="networkChart"></canvas>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                No historical data available for the selected time range.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<!-- Add Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Add DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap5.min.css"/>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Add DataTables JS -->
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap5.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chartData = {{ chart_data|safe }};
+    
+    if (chartData.timestamps && chartData.timestamps.length > 0) {
+        // CPU Chart
+        new Chart(document.getElementById('cpuChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: chartData.timestamps,
+                datasets: [{
+                    label: 'CPU Usage %',
+                    data: chartData.cpu.usage,
+                    borderColor: 'rgb(54, 162, 235)',
+                    fill: false
+                }, {
+                    label: 'CPU Min %',
+                    data: chartData.cpu.min,
+                    borderColor: 'rgba(54, 162, 235, 0.5)',
+                    fill: false
+                }, {
+                    label: 'CPU Max %',
+                    data: chartData.cpu.max,
+                    borderColor: 'rgba(54, 162, 235, 0.8)',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'CPU Usage Over Time' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+        
+        // Memory Chart
+        new Chart(document.getElementById('memoryChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: chartData.timestamps,
+                datasets: [{
+                    label: 'Memory Usage %',
+                    data: chartData.memory.usage,
+                    borderColor: 'rgb(255, 99, 132)',
+                    fill: false
+                }, {
+                    label: 'Memory Used (GB)',
+                    data: chartData.memory.used,
+                    borderColor: 'rgba(255, 99, 132, 0.5)',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Memory Usage Over Time' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+        
+        // Disk Chart
+        new Chart(document.getElementById('diskChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: chartData.timestamps,
+                datasets: [{
+                    label: 'Disk Usage %',
+                    data: chartData.disk.usage,
+                    borderColor: 'rgb(75, 192, 192)',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Disk Usage Over Time' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+        
+        // Network Chart
+        new Chart(document.getElementById('networkChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: chartData.timestamps,
+                datasets: [{
+                    label: 'Sent (MB)',
+                    data: chartData.network.bytes_sent,
+                    borderColor: 'rgb(255, 159, 64)',
+                    fill: false
+                }, {
+                    label: 'Received (MB)',
+                    data: chartData.network.bytes_recv,
+                    borderColor: 'rgb(153, 102, 255)',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Network Traffic Over Time' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+});
+
+$(document).ready(function() {
+    $('.table').DataTable({
+        order: [[0, 'desc']], // Sort by time descending
+        pageLength: 25, // Show 25 entries per page
+        dom: 'Bfrtip', // Add export buttons
+        buttons: [
+            'copy', 'csv', 'excel'
+        ],
+        responsive: true
+    });
+});
+</script>
+{% endblock %} 

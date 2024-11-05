@@ -46,11 +46,7 @@ INSTALLED_APPS = [
     # Local apps
     'core',
     'inventory',
-    'monitoring',
-    'alerts',
-    'analytics',
-    'reports',
-    'authentication',
+    'django.contrib.humanize',  # For filesizeformat template filter
 ]
 
 MIDDLEWARE = [
@@ -68,7 +64,7 @@ ROOT_URLCONF = 'chsys_mon.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -145,3 +141,11 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+APPEND_SLASH = False
+
+# Add CSRF trusted origins if needed
+CSRF_TRUSTED_ORIGINS = ['http://10.51.0.15:8000']  # Add your domain
+
+# Add this to your settings.py
+API_KEY = '444A-956C-4BNA-G968'  # Use a secure, random string

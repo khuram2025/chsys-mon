@@ -1,0 +1,83 @@
+<!-- templates/inventory/pending_devices.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Pending Devices</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>IP Address</th>
+                <th>Hostname</th>
+                <th>Platform</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr>
+                <td>{{ device.name }}</td>
+                <td>{{ device.device_type }}</td>
+                <td>{{ device.ip_address }}</td>
+                <td>{{ device.hostname }}</td>
+                <td>{{ device.platform }}</td>
+                <td>
+                    <button class="btn btn-success btn-sm approve-device" 
+                            data-device-id="{{ device.id }}">Approve</button>
+                    <button class="btn btn-danger btn-sm reject-device" 
+                            data-device-id="{{ device.id }}">Reject</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.querySelectorAll('.approve-device, .reject-device').forEach(button => {
+    button.addEventListener('click', async function() {
+        const deviceId = this.dataset.deviceId;
+        const action = this.classList.contains('approve-device') ? 'approve' : 'reject';
+        
+        try {
+            const response = await fetch(`/api/device/${deviceId}/${action}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ action: action })
+            });
+            
+            if (response.ok) {
+                // Reload the page to update the device list
+                window.location.reload();
+            } else {
+                alert('Error processing request');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error processing request');
+        }
+    });
+});
+
+// Function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
